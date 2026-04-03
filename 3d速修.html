@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>农业无人机3D速修服务</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- GSAP 动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/ScrollTrigger.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#0B3D91',
+                            light: '#1E5BC6',
+                            dark: '#082A68',
+                        },
+                        secondary: {
+                            DEFAULT: '#FF6B00',
+                            light: '#FF8533',
+                            dark: '#E55A00',
+                        },
+                        dark: {
+                            DEFAULT: '#1A1A2E',
+                            light: '#2A2A42',
+                        },
+                        light: {
+                            DEFAULT: '#F5F7FA',
+                            dark: '#E4E7EB',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'glow': '0 0 15px rgba(11, 61, 145, 0.5)',
+                        'glow-orange': '0 0 15px rgba(255, 107, 0, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #0B3D91 0%, #1E5BC6 100%);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #0B3D91 0%, #1E5BC6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .gradient-bg-orange {
+            background: linear-gradient(135deg, #FF6B00 0%, #FF8533 100%);
+        }
+        
+        .gradient-text-orange {
+            background: linear-gradient(135deg, #FF6B00 0%, #FF8533 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .service-card {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .case-card {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .case-card:hover img {
+            transform: scale(1.05);
+        }
+        
+        .case-card img {
+            transition: transform 0.5s ease;
+        }
+        
+        .btn-primary {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .btn-primary:hover:after {
+            left: 100%;
+        }
+        
+        .btn-secondary {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-secondary:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .btn-secondary:hover:after {
+            left: 100%;
+        }
+        
+        #model-container {
+            width: 100%;
+            height: 400px;
+            background-color: #0B3D91;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+        
+        .model-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .model-control-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .model-control-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .ai-system-container {
+            background-color: #f8fafc;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #0B3D91;
+            background-color: rgba(11, 61, 145, 0.05);
+        }
+        
+        .result-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stats-container {
+            background-color: #0B3D91;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .stat-item {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover .stat-number {
+            color: #FF6B00;
+            transform: scale(1.1);
+        }
+        
+        .process-step {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .process-step:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            background-color: #0B3D91;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .process-step:after {
+            content: '';
+            position: absolute;
+            left: 9px;
+            top: 20px;
+            width: 2px;
+            height: calc(100% + 20px);
+            background-color: #0B3D91;
+            z-index: 0;
+        }
+        
+        .process-step:last-child:after {
+            display: none;
+        }
+        
+        .process-step:hover:before {
+            background-color: #FF6B00;
+            transform: scale(1.2);
+        }
+        
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+        
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+        
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .process-step {
+                padding-left: 25px;
+            }
+            
+            .process-step:before {
+                width: 15px;
+                height: 15px;
+            }
+            
+            .process-step:after {
+                left: 7px;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .model-controls {
+                gap: 5px;
+            }
+            
+            .model-control-btn {
+                width: 35px;
+                height: 35px;
+            }
+        }
+        
+        /* 加载动画 */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #0B3D91;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 3D模型加载动画 */
+        .model-loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #0B3D91;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1E5BC6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-md fixed w-full z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <a href="#" class="flex items-center">
+                        <i class="fas fa-cube text-primary text-3xl mr-2"></i>
+                        <span class="text-xl font-bold text-primary">3D速修</span>
+                    </a>
+                </div>
+                
+                <!-- 桌面导航 -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#home" class="text-gray-700 hover:text-primary font-medium transition">首页</a>
+                    <a href="#services" class="text-gray-700 hover:text-primary font-medium transition">服务介绍</a>
+                    <a href="#cases" class="text-gray-700 hover:text-primary font-medium transition">案例展示</a>
+                    <a href="#ai-system" class="text-gray-700 hover:text-primary font-medium transition">AI智能匹配</a>
+                    <a href="#contact" class="text-gray-700 hover:text-primary font-medium transition">联系我们</a>
+                    <a href="#contact" class="bg-primary hover:bg-primary-light text-white px-6 py-2 rounded-full font-medium transition btn-primary">立即咨询</a>
+                </div>
+                
+                <!-- 移动端菜单按钮 -->
+                <div class="md:hidden">
+                    <button id="menu-toggle" class="text-gray-700 focus:outline-none">
+                        <i class="fas fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 移动端导航菜单 -->
+        <div id="mobile-menu" class="mobile-menu fixed top-0 left-0 h-full w-4/5 bg-white shadow-lg z-50 md:hidden">
+            <div class="p-5">
+                <div class="flex justify-between items-center mb-8">
+                    <a href="#" class="flex items-center">
+                        <i class="fas fa-cube text-primary text-3xl mr-2"></i>
+                        <span class="text-xl font-bold text-primary">3D速修</span>
+                    </a>
+                    <button id="close-menu" class="text-gray-700 focus:outline-none">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <div class="flex flex-col space-y-4">
+                    <a href="#home" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b border-gray-100">首页</a>
+                    <a href="#services" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b border-gray-100">服务介绍</a>
+                    <a href="#cases" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b border-gray-100">案例展示</a>
+                    <a href="#ai-system" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b border-gray-100">AI智能匹配</a>
+                    <a href="#contact" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b border-gray-100">联系我们</a>
+                    <a href="#contact" class="bg-primary hover:bg-primary-light text-white px-6 py-3 rounded-full font-medium transition text-center mt-4 btn-primary">立即咨询</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 移动端菜单背景遮罩 -->
+        <div id="menu-overlay" class="fixed inset-0 bg-black opacity-50 z-40 hidden md:hidden"></div>
+    </nav>
+
+    <!-- 首屏区域 -->
+    <section id="home" class="pt-28 pb-20 md:pt-40 md:pb-32 gradient-bg">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
+                        农业无人机<br>
+                        <span class="text-secondary">3D速修专家</span>
+                    </h1>
+                    <p class="text-lg md:text-xl text-gray-100 mb-8 max-w-lg">
+                        专业提供农业无人机零件的3D打印服务，快速修复损坏部件，降低维修成本，提高作业效率。
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="#services" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-medium transition text-center btn-primary">
+                            了解服务
+                        </a>
+                        <a href="#contact" class="bg-secondary hover:bg-secondary-dark text-white px-8 py-3 rounded-full font-medium transition text-center btn-secondary">
+                            立即咨询
+                        </a>
+                    </div>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://p26-doubao-search-sign.byteimg.com/labis/ff5cd602a226e81ec24a1851bf686418~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1790769733&x-signature=uBiyfFB%2BOkbB3m49D59pnqOZAz4%3D" alt="农业无人机" class="rounded-lg shadow-2xl w-full">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 服务优势 -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">我们的服务优势</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">专业的3D打印技术，为农业无人机提供高效、精准的零件维修解决方案</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-xl shadow-lg card-hover scroll-reveal">
+                    <div class="w-16 h-16 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-bolt text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">快速响应</h3>
+                    <p class="text-gray-600">24小时内完成零件设计和打印，紧急情况下可提供当日交付服务，减少无人机停机时间。</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl shadow-lg card-hover scroll-reveal" style="transition-delay: 0.2s;">
+                    <div class="w-16 h-16 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-dollar-sign text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">成本优势</h3>
+                    <p class="text-gray-600">相比原厂配件，3D打印零件可节省30%-70%的成本，同时保持良好的使用性能和寿命。</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl shadow-lg card-hover scroll-reveal" style="transition-delay: 0.4s;">
+                    <div class="w-16 h-16 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-cogs text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">定制化服务</h3>
+                    <p class="text-gray-600">根据无人机型号和损坏情况，提供精准的定制化打印服务，确保零件完美匹配。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 服务流程 -->
+    <section id="services" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">服务流程</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">简单四步，快速修复您的农业无人机</p>
+            </div>
+            
+            <div class="flex flex-col md:flex-row gap-8">
+                <div class="md:w-1/2">
+                    <div class="mb-12 process-step scroll-reveal">
+                        <h3 class="text-xl font-bold mb-3">1. 故障评估</h3>
+                        <p class="text-gray-600">提供无人机损坏部位的照片或描述，我们的技术团队将进行专业评估，确定需要打印的零件。</p>
+                    </div>
+                    
+                    <div class="mb-12 process-step scroll-reveal" style="transition-delay: 0.2s;">
+                        <h3 class="text-xl font-bold mb-3">2. 模型设计</h3>
+                        <p class="text-gray-600">根据无人机型号和零件规格，设计精确的3D模型，确保与原装零件完全匹配。</p>
+                    </div>
+                    
+                    <div class="mb-12 process-step scroll-reveal" style="transition-delay: 0.4s;">
+                        <h3 class="text-xl font-bold mb-3">3. 3D打印</h3>
+                        <p class="text-gray-600">使用专业的3D打印机和高质量材料，打印出符合要求的无人机零件。</p>
+                    </div>
+                    
+                    <div class="process-step scroll-reveal" style="transition-delay: 0.6s;">
+                        <h3 class="text-xl font-bold mb-3">4. 交付安装</h3>
+                        <p class="text-gray-600">将打印好的零件快递给您，并提供安装指导，确保无人机快速恢复正常使用。</p>
+                    </div>
+                </div>
+                
+                <div class="md:w-1/2">
+                    <img src="https://p26-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/56132f37f12c4a5b8dfc105358eba59c~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026040320020374C9713375EF22C75F60&rrcfp=f06b921b&x-expires=1777809754&x-signature=BJ2LRYmI5qhor5hGP4i%2BjHsDZFI%3D" alt="无人机维修" class="rounded-lg shadow-xl w-full scroll-reveal">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3D模型展示 -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">3D模型展示</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">查看我们为农业无人机打印的常见零件模型</p>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="lg:w-2/3 scroll-reveal">
+                    <div id="model-container" class="shadow-xl">
+                        <div class="model-loader">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
+                    <div class="model-controls">
+                        <button class="model-control-btn" id="rotate-left">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button class="model-control-btn" id="rotate-right">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                        <button class="model-control-btn" id="zoom-in">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button class="model-control-btn" id="zoom-out">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <button class="model-control-btn" id="reset-view">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="lg:w-1/3 scroll-reveal" style="transition-delay: 0.3s;">
+                    <div class="bg-gray-50 p-8 rounded-xl h-full">
+                        <h3 class="text-2xl font-bold mb-4">螺旋桨保护罩</h3>
+                        <div class="mb-6">
+                            <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mb-2">常见易损件</span>
+                            <span class="inline-block bg-secondary text-white text-xs px-3 py-1 rounded-full mb-2 ml-2">高需求</span>
+                        </div>
+                        <p class="text-gray-600 mb-6">
+                            专为农业无人机设计的螺旋桨保护罩，采用高强度PLA材料打印，具有良好的韧性和耐磨性，有效保护螺旋桨免受碰撞损坏。
+                        </p>
+                        <div class="mb-6">
+                            <h4 class="font-bold mb-2">适用机型：</h4>
+                            <ul class="text-gray-600 list-disc list-inside">
+                                <li>大疆 T20/T30 系列</li>
+                                <li>极飞 P30/P40 系列</li>
+                                <li>其他主流农业无人机</li>
+                            </ul>
+                        </div>
+                        <div class="mb-6">
+                            <h4 class="font-bold mb-2">材质选择：</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="border border-gray-300 px-3 py-1 rounded-full text-sm cursor-pointer hover:border-primary hover:text-primary transition">PLA (标准)</span>
+                                <span class="border border-gray-300 px-3 py-1 rounded-full text-sm cursor-pointer hover:border-primary hover:text-primary transition">PETG (耐候)</span>
+                                <span class="border border-gray-300 px-3 py-1 rounded-full text-sm cursor-pointer hover:border-primary hover:text-primary transition">TPU (柔性)</span>
+                            </div>
+                        </div>
+                        <a href="#contact" class="block bg-primary hover:bg-primary-light text-white text-center px-6 py-3 rounded-full font-medium transition btn-primary">
+                            咨询定制
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 案例展示 -->
+    <section id="cases" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">成功案例</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">我们已成功为众多客户修复农业无人机，以下是部分案例展示</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white rounded-xl overflow-hidden shadow-lg case-card scroll-reveal">
+                    <div class="h-56 overflow-hidden">
+                        <img src="https://p11-doubao-search-sign.byteimg.com/labis/ea8c66951acfd6a6dea0601d41448e1e~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1790769734&x-signature=2R4%2BnCmcvpISL%2BGSDwXkpvjiZqE%3D" alt="无人机零件" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">支架修复</h3>
+                        <p class="text-gray-600 mb-4">为某农场修复大疆T20无人机的起落架支架，采用加强型设计，提高了耐用性。</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">修复时间：24小时</span>
+                            <span class="text-sm font-medium text-primary">成本节省：65%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl overflow-hidden shadow-lg case-card scroll-reveal" style="transition-delay: 0.2s;">
+                    <div class="h-56 overflow-hidden">
+                        <img src="https://p11-doubao-search-sign.byteimg.com/ecom-shop-material/jpeg_m_02f472f104ec68f3b2c8b08d0c1352f9_sx_1179813_www1188-1188~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1790769734&x-signature=kFM%2BJ61sqFHavaLsIwWQHufxNH4%3D" alt="无人机机架" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">机架定制</h3>
+                        <p class="text-gray-600 mb-4">为专业合作社定制极飞P30无人机的机架组件，解决了原厂配件供应周期长的问题。</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">修复时间：48小时</span>
+                            <span class="text-sm font-medium text-primary">成本节省：50%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl overflow-hidden shadow-lg case-card scroll-reveal" style="transition-delay: 0.4s;">
+                    <div class="h-56 overflow-hidden">
+                        <img src="https://p11-doubao-search-sign.byteimg.com/isp-i18n-media/img/c4e3da6fa6241623659c53576d198e63~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1790769734&x-signature=ZT6%2Brs%2BcnGYYxmd7hwGSduaYhr4%3D" alt="无人机配件" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">防护配件</h3>
+                        <p class="text-gray-600 mb-4">为农业无人机设计并打印专用防护配件，提高了设备在恶劣环境下的使用寿命。</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">修复时间：36小时</span>
+                            <span class="text-sm font-medium text-primary">成本节省：40%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-12">
+                <a href="#contact" class="inline-block bg-primary hover:bg-primary-light text-white px-8 py-3 rounded-full font-medium transition btn-primary">
+                    咨询更多案例
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI智能零件匹配系统 -->
+    <section id="ai-system" class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">AI智能零件匹配系统</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">上传损坏零件照片，AI自动识别并推荐匹配的3D打印模型</p>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-12 items-center">
+                <div class="lg:w-1/2 scroll-reveal">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/a22b7f160b654308a012a825abe8ecd9~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026040320020374C9713375EF22C75F60&rrcfp=f06b921b&x-expires=1777809760&x-signature=LQxPnxOvORLNM49yxjWUQRQDBgU%3D" alt="AI智能零件匹配系统" class="rounded-lg shadow-xl w-full">
+                </div>
+                
+                <div class="lg:w-1/2 scroll-reveal" style="transition-delay: 0.3s;">
+                    <div class="ai-system-container p-8">
+                        <h3 class="text-2xl font-bold mb-6">快速匹配您的零件</h3>
+                        
+                        <div class="mb-8">
+                            <label class="block text-gray-700 font-medium mb-2">上传零件照片</label>
+                            <div class="upload-area p-8 text-center cursor-pointer" id="upload-area">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                                <p class="text-gray-500 mb-2">点击或拖拽照片到此处上传</p>
+                                <p class="text-gray-400 text-sm">支持 JPG、PNG 格式，最大 5MB</p>
+                                <input type="file" id="part-image" class="hidden" accept="image/*">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <label class="block text-gray-700 font-medium mb-2">选择无人机品牌</label>
+                            <select class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="">请选择品牌</option>
+                                <option value="dji">大疆 (DJI)</option>
+                                <option value="xag">极飞 (XAG)</option>
+                                <option value="jifei">极飞 (Jifei)</option>
+                                <option value="other">其他品牌</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <label class="block text-gray-700 font-medium mb-2">零件描述 (可选)</label>
+                            <textarea class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" rows="3" placeholder="请描述零件的损坏情况或其他需求..."></textarea>
+                        </div>
+                        
+                        <button id="match-btn" class="w-full bg-primary hover:bg-primary-light text-white py-3 rounded-lg font-medium transition btn-primary">
+                            开始智能匹配
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 统计数据 -->
+    <section class="py-20 stats-container">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="stat-item text-center p-6 scroll-reveal">
+                    <div class="stat-number mb-2">500+</div>
+                    <p class="text-gray-200">成功修复案例</p>
+                </div>
+                
+                <div class="stat-item text-center p-6 scroll-reveal" style="transition-delay: 0.2s;">
+                    <div class="stat-number mb-2">98%</div>
+                    <p class="text-gray-200">客户满意度</p>
+                </div>
+                
+                <div class="stat-item text-center p-6 scroll-reveal" style="transition-delay: 0.4s;">
+                    <div class="stat-number mb-2">24h</div>
+                    <p class="text-gray-200">平均交付时间</p>
+                </div>
+                
+                <div class="stat-item text-center p-6 scroll-reveal" style="transition-delay: 0.6s;">
+                    <div class="stat-number mb-2">60%</div>
+                    <p class="text-gray-200">平均成本节省</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 联系我们 -->
+    <section id="contact" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">联系我们</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">无论您有任何问题或需求，我们都将竭诚为您服务</p>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-12">
+                <div class="lg:w-1/2 scroll-reveal">
+                    <form class="bg-white p-8 rounded-xl shadow-lg">
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">您的姓名</label>
+                            <input type="text" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="请输入您的姓名">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">联系电话</label>
+                            <input type="tel" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="请输入您的联系电话">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">无人机型号</label>
+                            <input type="text" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="请输入您的无人机型号">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">咨询内容</label>
+                            <textarea class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" rows="4" placeholder="请详细描述您的需求或问题..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-primary hover:bg-primary-light text-white py-3 rounded-lg font-medium transition btn-primary">
+                            提交咨询
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="lg:w-1/2 scroll-reveal" style="transition-delay: 0.3s;">
+                    <div class="bg-white p-8 rounded-xl shadow-lg h-full">
+                        <h3 class="text-2xl font-bold mb-6">联系方式</h3>
+                        
+                        <div class="mb-8">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-phone text-primary text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-700">电话咨询</h4>
+                                    <p class="text-gray-600">15607942025</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fab fa-weixin text-primary text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-700">微信咨询</h4>
+                                    <p class="text-gray-600">wxw0058220</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-map-marker-alt text-primary text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-700">公司地址</h4>
+                                    <p class="text-gray-600">江西飞行学院</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <h4 class="font-bold text-gray-700 mb-4">工作时间</h4>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">周一至周五</span>
+                                <span class="text-gray-600">9:00 - 18:00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">周六至周日</span>
+                                <span class="text-gray-600">10:00 - 16:00</span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold text-gray-700 mb-4">关注我们</h4>
+                            <div class="flex space-x-4">
+                                <a href="#" class="w-10 h-10 bg-primary bg-opacity-10 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition">
+                                    <i class="fab fa-weixin"></i>
+                                </a>
+                                <a href="#" class="w-10 h-10 bg-primary bg-opacity-10 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition">
+                                    <i class="fab fa-weibo"></i>
+                                </a>
+                                <a href="#" class="w-10 h-10 bg-primary bg-opacity-10 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition">
+                                    <i class="fab fa-qq"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between mb-12">
+                <div class="mb-8 md:mb-0">
+                    <a href="#" class="flex items-center mb-4">
+                        <i class="fas fa-cube text-white text-3xl mr-2"></i>
+                        <span class="text-xl font-bold">3D速修</span>
+                    </a>
+                    <p class="text-gray-400 max-w-xs">
+                        专业提供农业无人机零件的3D打印维修服务，为您的农业生产保驾护航。
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-8">
+                    <div>
+                        <h4 class="text-lg font-bold mb-4">快速链接</h4>
+                        <ul class="space-y-2">
+                            <li><a href="#home" class="text-gray-400 hover:text-white transition">首页</a></li>
+                            <li><a href="#services" class="text-gray-400 hover:text-white transition">服务介绍</a></li>
+                            <li><a href="#cases" class="text-gray-400 hover:text-white transition">案例展示</a></li>
+                            <li><a href="#ai-system" class="text-gray-400 hover:text-white transition">AI智能匹配</a></li>
+                            <li><a href="#contact" class="text-gray-400 hover:text-white transition">联系我们</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-bold mb-4">服务项目</h4>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="text-gray-400 hover:text-white transition">螺旋桨保护罩</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-white transition">起落架支架</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-white transition">水箱配件</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-white transition">喷洒系统零件</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-white transition">定制化服务</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-bold mb-4">联系我们</h4>
+                        <ul class="space-y-2">
+                            <li class="flex items-center">
+                                <i class="fas fa-phone mr-2 text-secondary"></i>
+                                <span class="text-gray-400">15607942025</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fab fa-weixin mr-2 text-secondary"></i>
+                                <span class="text-gray-400">wxw0058220</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-map-marker-alt mr-2 text-secondary"></i>
+                                <span class="text-gray-400">江西飞行学院</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-gray-400 mb-4 md:mb-0">© 2023 3D速修. 保留所有权利.</p>
+                    <div class="flex space-x-6">
+                        <a href="#" class="text-gray-400 hover:text-white transition">隐私政策</a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">服务条款</a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">网站地图</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 返回顶部按钮 -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 bg-primary hover:bg-primary-light text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition opacity-0 invisible">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script>
+        // 导航菜单交互
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.getElementById('menu-toggle');
+            const closeMenu = document.getElementById('close-menu');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const menuOverlay = document.getElementById('menu-overlay');
+            const mobileMenuLinks = mobileMenu.querySelectorAll('a');
+            
+            menuToggle.addEventListener('click', function() {
+                mobileMenu.classList.add('active');
+                menuOverlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+            
+            function closeMenuHandler() {
+                mobileMenu.classList.remove('active');
+                menuOverlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+            
+            closeMenu.addEventListener('click', closeMenuHandler);
+            menuOverlay.addEventListener('click', closeMenuHandler);
+            
+            mobileMenuLinks.forEach(link => {
+                link.addEventListener('click', closeMenuHandler);
+            });
+            
+            // 滚动显示返回顶部按钮
+            const backToTopBtn = document.getElementById('back-to-top');
+            
+            window.addEventListener('scroll', function() {
+                if (window.pageYOffset > 300) {
+                    backToTopBtn.classList.remove('opacity-0', 'invisible');
+                    backToTopBtn.classList.add('opacity-100', 'visible');
+                } else {
+                    backToTopBtn.classList.remove('opacity-100', 'visible');
+                    backToTopBtn.classList.add('opacity-0', 'invisible');
+                }
+            });
+            
+            backToTopBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // 滚动动画
+            const scrollRevealElements = document.querySelectorAll('.scroll-reveal');
+            
+            const revealOnScroll = function() {
+                scrollRevealElements.forEach(element => {
+                    const elementTop = element.getBoundingClientRect().top;
+                    const windowHeight = window.innerHeight;
+                    
+                    if (elementTop < windowHeight * 0.85) {
+                        element.classList.add('active');
+                    }
+                });
+            };
+            
+            window.addEventListener('scroll', revealOnScroll);
+            window.addEventListener('load', revealOnScroll);
+            
+            // 3D模型展示
+            let scene, camera, renderer, model;
+            let modelLoaded = false;
+            
+            function init3DModel() {
+                // 创建场景
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0B3D91);
+                
+                // 创建相机
+                camera = new THREE.PerspectiveCamera(75, document.getElementById('model-container').offsetWidth / document.getElementById('model-container').offsetHeight, 0.1, 1000);
+                camera.position.z = 5;
+                
+                // 创建渲染器
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(document.getElementById('model-container').offsetWidth, document.getElementById('model-container').offsetHeight);
+                document.getElementById('model-container').appendChild(renderer.domElement);
+                
+                // 添加灯光
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(1, 1, 1);
+                scene.add(directionalLight);
+                
+                // 创建一个简单的无人机零件模型（螺旋桨保护罩）
+                const geometry = new THREE.CylinderGeometry(1, 1.5, 0.5, 32);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: 0x1E5BC6,
+                    shininess: 100,
+                    specular: 0x111111
+                });
+                model = new THREE.Mesh(geometry, material);
+                
+                // 添加一些细节
+                const detailGeometry = new THREE.TorusGeometry(1.25, 0.05, 16, 100);
+                const detailMaterial = new THREE.MeshPhongMaterial({ color: 0xFF6B00 });
+                const detail = new THREE.Mesh(detailGeometry, detailMaterial);
+                detail.rotation.x = Math.PI / 2;
+                model.add(detail);
+                
+                scene.add(model);
+                
+                // 隐藏加载动画
+                document.querySelector('.model-loader').style.display = 'none';
+                modelLoaded = true;
+                
+                // 动画循环
+                animate();
+                
+                // 添加控制器
+                document.getElementById('rotate-left').addEventListener('click', function() {
+                    model.rotation.y -= Math.PI / 4;
+                });
+                
+                document.getElementById('rotate-right').addEventListener('click', function() {
+                    model.rotation.y += Math.PI / 4;
+                });
+                
+                document.getElementById('zoom-in').addEventListener('click', function() {
+                    camera.position.z -= 0.5;
+                });
+                
+                document.getElementById('zoom-out').addEventListener('click', function() {
+                    camera.position.z += 0.5;
+                });
+                
+                document.getElementById('reset-view').addEventListener('click', function() {
+                    camera.position.z = 5;
+                    model.rotation.x = 0;
+                    model.rotation.y = 0;
+                });
+            }
+            
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                if (modelLoaded) {
+                    model.rotation.y += 0.005;
+                }
+                
+                renderer.render(scene, camera);
+            }
+            
+            // 初始化3D模型
+            init3DModel();
+            
+            // 窗口大小调整
+            window.addEventListener('resize', function() {
+                if (modelLoaded) {
+                    const container = document.getElementById('model-container');
+                    camera.aspect = container.offsetWidth / container.offsetHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.offsetWidth, container.offsetHeight);
+                }
+            });
+            
+            // AI系统交互
+            const uploadArea = document.getElementById('upload-area');
+            const partImage = document.getElementById('part-image');
+            const matchBtn = document.getElementById('match-btn');
+            
+            uploadArea.addEventListener('click', function() {
+                partImage.click();
+            });
+            
+            partImage.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        uploadArea.innerHTML = `
+                            <img src="${e.target.result}" alt="上传的零件照片" class="max-h-40 mx-auto mb-4">
+                            <p class="text-gray-700 mb-2">${partImage.files[0].name}</p>
+                            <p class="text-gray-400 text-sm">点击更换照片</p>
+                        `;
+                    };
+                    
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            
+            matchBtn.addEventListener('click', function() {
+                if (!partImage.files || !partImage.files[0]) {
+                    alert('请先上传零件照片');
+                    return;
+                }
+                
+                // 模拟AI匹配过程
+                matchBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 正在匹配...';
+                matchBtn.disabled = true;
+                
+                setTimeout(function() {
+                    matchBtn.innerHTML = '<i class="fas fa-check mr-2"></i> 匹配成功';
+                    
+                    setTimeout(function() {
+                        alert('匹配成功！我们的技术人员将在24小时内与您联系。');
+                        matchBtn.innerHTML = '开始智能匹配';
+                        matchBtn.disabled = false;
+                    }, 1000);
+                }, 2000);
+            });
+            
+            // 表单提交
+            const contactForm = document.querySelector('form');
+            
+            if (contactForm) {
+                contactForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 提交中...';
+                    submitBtn.disabled = true;
+                    
+                    setTimeout(function() {
+                        submitBtn.innerHTML = '<i class="fas fa-check mr-2"></i> 提交成功';
+                        
+                        setTimeout(function() {
+                            alert('提交成功！我们将尽快与您联系。');
+                            contactForm.reset();
+                            submitBtn.innerHTML = '提交咨询';
+                            submitBtn.disabled = false;
+                        }, 1000);
+                    }, 2000);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
